@@ -70,6 +70,13 @@ class GLBuffer : OutBuffer {
     img[pos .. pos + 4] = RGBA.v[];
   }
 
+  float4 Read ( int2 p ) {
+    if ( !(p.x >= 0 && p.y >= 0 && p.x < width && p.y < height) )
+      return float4(0.0f);
+    size_t pos = width*p.y*4 + p.x*4;
+    return float4(img[pos .. pos+4]);
+  }
+
   private void Allocate_Texture ( ref uint gl_texture,
                                   size_t width, size_t height ) {
     glGenTextures(1, &gl_texture);

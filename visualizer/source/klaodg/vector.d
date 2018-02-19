@@ -83,3 +83,5 @@ float3 Clamp ( float3 torig, float3 dir ) {
 float Clamp ( float torig, float dir ) {
   return dir <= 0.0f ? floor(torig) : ceil(torig);
 }
+
+T Mix (T)(T x, T y, float a) { return cast(T)(y*a + x*(1.0f - a)); }

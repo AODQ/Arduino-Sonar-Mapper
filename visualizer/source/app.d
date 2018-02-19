@@ -4,10 +4,11 @@ import std.parallelism, std.range;
 import klaodg;
 import std.stdio;
 import serial.device : SerialPort, TimeoutException;
+import std.algorithm, std.range;
 
-immutable int2 dim = int2(256, 144);
+immutable int2 dim      = int2(256, 144);
 immutable float2 dim_fl = cast(float2)(dim);
-immutable int2 cam_dim = int2(20);
+immutable int2 cam_dim  = int2(140, 6);
 SerialPort port_com;
 
 string Serial_Read ( ) {
@@ -21,15 +22,13 @@ string Serial_Read ( ) {
   }
 }
 
-auto RDistance ( ) {
-  struct DistInfo {
-    int coord_x;
-    float dist;
-  }
+int[] RDistance ( ) {
   string data = Serial_Read();
-  if ( data == "" ) return DistInfo(0, -1.0f);
+  if ( data == "" ) return [];
   string[] d = data.split(" ");
-  return DistInfo(d[0].to!int, d[1][0..$-1].to!float);
+  if ( d.length >= 6 )
+    return d[0..6].map!(to!int).array;
+  return [];
 }
 
 // TODO make To_Vec again
@@ -42,30 +41,49 @@ auto To_Int2 ( float x , float y ) {
   sudo chmod a+rw /dev/tty/USB0
 */
 
-int XCast ( int t ) {
+int XCast (T)( T t ) {
   return cast(int)(cast(float)(t)*(dim_fl.x/cast(float)(cam_dim.x)));
 }
+int YCast (T)( T t ) {
+  return cast(int)(cast(float)(t)*(dim_fl.y/cast(float)(cam_dim.y)));
+}
 int t = 0;
+
+
+void Apply_Buffer ( GLBuffer img, int[] arr, int x_iter ) {
+  foreach ( y_iter, elem; arr ) {
+    bool draw = elem > 0;
+    foreach ( i; XCast(x_iter) .. XCast(x_iter+1) )
+    foreach ( j; YCast(y_iter) .. YCast(y_iter+1) ) {
+      auto pos = To_Int2(i, j);
+      img.Apply(pos, float4(float3((100-elem)/100.0f)*draw, 1.0f));
+    }
+  }
+}
 void main ( ) {
   import core.time : dur;
   auto timeout = dur!"msecs"(100);
-  port_com = new SerialPort("/dev/ttyUSB0");
-  Initialize(256, 144, "klaodg arduino", (GLBuffer img, float time) {
-    auto info = RDistance();
-    if ( t > 19 ) t = 0;
-    writeln("T: ", t);
-    if ( info.coord_x == 19 ) t += 1;
-    bool draw = info.dist > 0.0f;
-    if ( info.dist <= 0.0f ) {
+  port_com = new SerialPort("/dev/ttyUSB2");
+  int it = 0;
+
+  GLBuffer left, right;
+  Initialize(dim.x, dim.y, "klaodg arduino",
+  () {// init
+    left  = new GLBuffer(dim.x, dim.y);
+    right = new GLBuffer(dim.x, dim.y);
+  }, (GLBuffer img, float time) { //update
+    int[] arr = RDistance();
+    if ( arr.length == 0 ) return;
+    left .Apply_Buffer(arr[0 .. cam_dim.y], it);
+    right.Apply_Buffer( arr[0 .. cam_dim.y], it);
+    // "overlay" the two
+    foreach ( i; 0 .. dim.x )
+    foreach ( j; 0 .. dim.y ) {
+      auto pos = To_Int2(i, j);
+      img.Apply(pos, float4(
+        Mix(left.Read(pos), right.Read(pos), 0.5f).xyz, 1.0f));
     }
-    foreach ( i; XCast(info.coord_x) .. XCast(info.coord_x+1) )
-    foreach ( j; 0 .. 7.0f ) {
-      if ( !draw ) {
-        img.Apply(To_Int2(i, (t*8)+j), float4(0.0f, 0.0f, 0.0f, 1.0f));
-        continue;
-      }
-      img.Apply(To_Int2(i, (t*8)+j), float4(1.0f-info.dist, 0.0f, 0.0f, 1.0f));
-    }
+    if ( ++ it >= cam_dim.x ) it = 0;
   });
   port_com.close();
 }

@@ -17,8 +17,10 @@ GUI* gui;
 int window_width, window_height;
 
 alias UpdateDelegate = void delegate(GLBuffer, float time/*, gui*/);
+alias InitializeDelegate = void delegate();
 
-void Initialize ( int width, int height, string title, UpdateDelegate update ) {
+void Initialize ( int width, int height, string title,
+                  InitializeDelegate Initialize, UpdateDelegate Update ) {
   string font_path = thisExePath().dirName().buildPath("DroidSans.ttf");
   window_width  = 640;
   window_height = 480;
@@ -65,6 +67,7 @@ void Initialize ( int width, int height, string title, UpdateDelegate update ) {
     gui = new GUI(0);
   }
 
+  Initialize();
   GLBuffer gl_buffer = new GLBuffer(width, height);
   float last_time, framerate;
 
@@ -74,7 +77,7 @@ void Initialize ( int width, int height, string title, UpdateDelegate update ) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     Input_Update(window);
     gui.Start_Update(framerate);
-    update(gl_buffer, glfwGetTime());
+    Update(gl_buffer, glfwGetTime());
     gl_buffer.Render();
     gui.End_Update();
     glfwSwapBuffers(window);
