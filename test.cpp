@@ -26,49 +26,72 @@ public:
   }
 };
 
+template <int Pin>
+struct Rotatal {
+  CameraServo* servo_x, * servo_y;
+  void Init ( ) {
+    servo_y = new CameraServo(Pin+0);
+    servo_x = new CameraServo(Pin+1);
+  }
+
+  void Set ( float x, float y ) {
+    servo_y->Apply(y);
+    servo_x->Apply(x);
+  }
+};
+
 template <int Sonar_amt, int Sonar_dist, int Servo_x, int Iters>
 struct Camera {
   static_assert(Sonar_amt%2 == 0, "Must have even number of sensors");
   using SonarPool = ParallelSonar<Sonar_amt, Sonar_dist>;
-  CameraServo* servo_left, * servo_right; // No unique ptr.. but not really necessary anyways
+  Rotatal<Servo_x>  left;
+  Rotatal<Servo_x+2>right;
   SonarPool* sonar_pool;
-  int y_iter = 0;
+  int y_iter = 90;
 
   void Init ( ) {
     Serial.begin(9600);
-    servo_left  = new CameraServo(Servo_x);
-    servo_right = new CameraServo(Servo_x+1);
+    left.Init();
+    right.Init();
     sonar_pool = new SonarPool();
     Clean_Reset();
   }
 
+
   void Clean_Reset ( ) {
-    int l = int(servo_left->RTheta()*180.0f),
-        r = int(servo_right->RTheta()*180.0f);
-    while ( l != 0 && r != 180 ) {
-      if ( l != 0   ) servo_left ->Apply((--l)/180.0f);
-      if ( r != 180 ) servo_right->Apply((++r)/180.0f);
-    }
+    left .Set(1.0f, y_iter/180.0f);
+    right.Set(0.0f, y_iter/180.0f);
   }
 
   void Sweep () {
     const float it_fl = static_cast<float>(Iters);
     float d = 0.0f;
+    delay(100);
     for ( int i = 0; i != Iters; ++ i ) {
-      servo_left->Apply(Mix(0.2f, 0.8f, i/it_fl));
-      servo_right->Apply(1.0f - Mix(0.2f, 0.8f, i/it_fl));
-      delay(250); // delay to avoid screwing up parallel sonar pin readings
+      right.Set(Mix(0.2f, 0.4f, i/it_fl), (y_iter+10)/180.0f);
+      left .Set(1.0f - Mix(0.2f, 0.4f, i/it_fl), y_iter/180.0f);
+      delay(50); // delay to avoid screwing up parallel sonar pin readings
       unsigned long data[Sonar_amt];
-      sonar_pool->Ping(data);
-      for ( auto&& d : data )
+      unsigned long rdata[Sonar_amt];
+      for ( int avg = 0; avg != 20; ++ avg ) {
+        sonar_pool->Ping(data);
+        for ( int it = 0; it != Sonar_amt; ++ it )
+          rdata[it] += data[it];
+        delay(10);
+      }
+      for ( auto& rd : rdata )
+        rd /= 20;
+      for ( auto&& d : rdata )
         write(d, " ");
     }
+    y_iter += 10;
+    if ( y_iter >= 110 ) y_iter = 70;
     Clean_Reset();
   }
 };
 
 // template <int Sonar_amt, int Sonar_dist, int Servo_x, int Iters>
-Camera<6, 100, 11, 140> camera;
+Camera<2, 100, 9, 20> camera;
 
 void setup(){
   camera.Init();

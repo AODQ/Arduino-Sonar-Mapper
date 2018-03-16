@@ -1,0 +1,104 @@
+#include <AOUtil.h>
+#include <ParallelSonar.h>
+#include <Arduino.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
+#include <Servo.h>
+
+struct CameraServo {
+private:
+  float theta;
+public:
+  Servo servo;
+  CameraServo ( ) {}
+  CameraServo ( int idx ) {
+    servo.attach(idx);
+    theta = servo.read()/180.0f;
+  }
+
+  float RTheta ( ) { return theta; }
+  // 0.0f .. 1.0f
+  void Apply ( float i ) {
+    // LINE BELOW BREAKS SONAR ???
+    servo.write(int( i*180.0f ));
+  }
+  void Apply_MS ( float i ) {
+    theta = Clamp(i, 0.0f, 1.0f);
+    servo.write(1000 + int( i*1000.0f ));
+  }
+};
+
+template <int Pin>
+struct Rotatal {
+  CameraServo* servo_x, * servo_y;
+  void Init ( ) {
+    servo_y = new CameraServo(Pin+0);
+    servo_x = new CameraServo(Pin+1);
+  }
+
+  void Set ( float x, float y ) {
+    servo_y->Apply(y);
+    servo_x->Apply(x);
+  }
+
+  void Set_MS ( float x, float y ) {
+    servo_y->Apply_MS(y);
+    servo_x->Apply_MS(x);
+  }
+};
+
+template <int Sonar_amt, int Sonar_dist, int Servo_x, int Iters>
+struct Camera {
+  static_assert(Sonar_amt%2 == 0, "Must have even number of sensors");
+  using SonarPool = ParallelSonar<Sonar_amt, Sonar_dist>;
+  Rotatal<Servo_x>  left;
+  Rotatal<Servo_x+2>right;
+  SonarPool* sonar_pool;
+  int y_iter = 90;
+
+  void Init ( ) {
+    Serial.begin(9600);
+    left.Init();
+    right.Init();
+    sonar_pool = new SonarPool();
+    Clean_Reset();
+  }
+
+
+  void Clean_Reset ( ) {
+    // left .Set(1.0f, y_iter/180.0f);
+    right.Set(0.0f, y_iter/180.0f);
+  }
+
+  void Sweep () {
+    /*
+      Modify the code in the sweep sketch so that your servo arm:
+      Behaves like the second hand on an analog clock face,
+      making sure it sweeps out 90° of arc in 15 seconds,
+      and moving as smoothly and uniformly as possible
+    */
+    unsigned int ms = 30u*1000;
+    float mil = (millis()%(ms))/static_cast<float>(ms);
+    right .Set_MS(mil, 0.5f);
+    write(static_cast<int>(mil * (30.0f/100.0f)*100.0f), " ");
+  }
+};
+
+// template <int Sonar_amt, int Sonar_dist, int Servo_x, int Iters>
+Camera<2, 100, 9, 140> camera;
+
+void setup(){
+  camera.Init();
+}
+
+#include <Chrono.h>
+Chrono chrono;
+void loop() {
+  chrono.restart(0);
+  chrono.resume();
+
+  camera.Sweep();
+
+  chrono.stop();
+}

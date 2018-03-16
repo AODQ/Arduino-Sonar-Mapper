@@ -6,6 +6,8 @@ public import std.math : PI, sin, cos, tan, asin, acos, atan, atan2, sinh, cosh,
                          sqrt, abs, floor, trunc, round, ceil, modf, modf;
 public import std.algorithm : min, max;
 
+immutable float TAU = PI*2.0f;
+
 alias Is_Vector = isVector;
 
 alias int2 = Vector!(int, 2);
@@ -27,6 +29,8 @@ float3x3 Float3x3(float3 u, float3 v, float3 w) {
                    v.x, v.y, v.z,
                    w.x, w.y, w.z]);
 }
+
+struct Ray { float3 ori, dir; }
 
 struct RGBA32 {
   private uint _data;
@@ -60,7 +64,11 @@ bool In_Bounds(T)(T t, T l, T h) if(Is_Vector!T){
   return false;
 }
 
-auto Clamp(V)(V vec, V min, V max) pure nothrow if (Is_Vector!V) {
+auto Clamp ( float v, float min, float max ) pure nothrow {
+  return (v < min ? min : (v > max ? max : v));
+}
+auto Clamp(V, T, N)(V!(T, N) vec, V!(T, N) min, V!(T, N) max) pure nothrow
+           if (Is_Vector!V) {
   V ret;
   static foreach ( i; 0 .. V.Dim )
     ret.v[i] = (vec.v[i] < min.v[i] ? min.v[i] :
