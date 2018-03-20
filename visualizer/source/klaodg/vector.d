@@ -23,12 +23,15 @@ alias float3 = Vector!(float, 3);
 alias float4 = Vector!(float, 4);
 
 alias float3x3 = mat3x3!float;
+alias float4x4 = mat4x4!float;
 
 float3x3 Float3x3(float3 u, float3 v, float3 w) {
   return float3x3([u.x, u.y, u.z,
                    v.x, v.y, v.z,
                    w.x, w.y, w.z]);
 }
+
+T Sqr(T)(T t) { return t*t; }
 
 struct Ray { float3 ori, dir; }
 
@@ -67,10 +70,10 @@ bool In_Bounds(T)(T t, T l, T h) if(Is_Vector!T){
 auto Clamp ( float v, float min, float max ) pure nothrow {
   return (v < min ? min : (v > max ? max : v));
 }
-auto Clamp(V, T, N)(V!(T, N) vec, V!(T, N) min, V!(T, N) max) pure nothrow
-           if (Is_Vector!V) {
-  V ret;
-  static foreach ( i; 0 .. V.Dim )
+auto Clamp(T)(T vec, T min, T max) pure nothrow
+           if (Is_Vector!T) {
+  T ret;
+  static foreach ( i; 0 .. T.Dim )
     ret.v[i] = (vec.v[i] < min.v[i] ? min.v[i] :
                (vec.v[i] > max.v[i] ? max.v[i] :
                 vec.v[i]));
@@ -93,3 +96,11 @@ float Clamp ( float torig, float dir ) {
 }
 
 T Mix (T)(T x, T y, float a) { return cast(T)(y*a + x*(1.0f - a)); }
+
+float Distance ( float3 u, float3 v ) pure nothrow {
+  return sqrt(Sqr(u.x-v.x) + Sqr(u.y-v.y) + Sqr(u.z-v.z));
+}
+
+float3 To_Cartesian ( float theta, float phi ) {
+  return float3(cos(phi)*sin(theta), sin(phi)*sin(theta), cos(theta));
+}

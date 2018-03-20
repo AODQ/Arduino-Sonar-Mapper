@@ -1,97 +1,69 @@
 module klaodg;
 
-public import klaodg.buffer, klaodg.vector, klaodg.input;
+public import klaodg.vector;
+import derelict.util.loader;
+import gfm.logger, gfm.sdl2, gfm.opengl, gfm.math;
 
-public import imgui : imguiSeparator, imguiSeparatorLine,
-                      imguiLabel, imguiSlider, imguiCheck;
+ConsoleLogger console;
+SDL2 sdl2;
+SDLTTF sdl2ttf;
+SDLImage sdl2image;
+SDL2Window window;
+OpenGL gl_handle;
+private int width, height;
+private float ms_per_frame;
+float2 Window_Dim ( ) { return float2(width, height); }
+float MS_Per_Frame ( ) { return ms_per_frame; }
 
-import std.exception, std.file, std.path, std.stdio, std.string;
+void Initialize_Klaodg ( int _width, int _height, float _ms_per_frame,
+                        string _name ) {
+  ms_per_frame = _ms_per_frame;
+  width = _width; height = _height;
+  console = new ConsoleLogger();
+  sdl2 = new SDL2(console, SharedLibVersion(2, 0, 0));
+  gl_handle = new OpenGL(console);
 
-import derelict.glfw3.glfw3, derelict.opengl;
-import klaodg.gui;
-import imgui;
-// import gui;
+  sdl2.subSystemInit(SDL_INIT_VIDEO);
+  sdl2.subSystemInit(SDL_INIT_EVENTS);
+  sdl2image = new SDLImage(sdl2, IMG_INIT_PNG);
+  sdl2ttf   = new SDLTTF(sdl2);
 
-private GLFWwindow* window;
-GUI* gui;
-int window_width, window_height;
-
-alias UpdateDelegate = void delegate(GLBuffer, float time/*, gui*/);
-alias InitializeDelegate = void delegate();
-
-void Initialize ( int width, int height, string title,
-                  InitializeDelegate Initialize, UpdateDelegate Update ) {
-  string font_path = thisExePath().dirName().buildPath("DroidSans.ttf");
-  window_width  = 640;
-  window_height = 480;
-  DerelictGL3.load();
-  DerelictGLFW3.load();
-  glfwInit();
-
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-  glfwWindowHint(GLFW_RESIZABLE,      GL_FALSE                 );
-  glfwWindowHint(GLFW_FLOATING,       GL_TRUE                  );
-  glfwWindowHint( GLFW_REFRESH_RATE,  0                        );
-  glfwSwapInterval(1);
-
-  window = glfwCreateWindow(640, 480, title.ptr, null, null);
-
-  glfwWindowHint(GLFW_FLOATING,       GL_TRUE                  );
-  glfwMakeContextCurrent(window);
-  DerelictGL3.reload();
-  glClampColor(GL_CLAMP_READ_COLOR, GL_FALSE);
-
-  glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
-
-  enforce(imguiInit("DroidSans.ttf"));
-
-  glClearColor(0.02f, 0.02f, 0.02f, 1.0f);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                      SDL_GL_CONTEXT_PROFILE_CORE);
+  window = new SDL2Window(sdl2, SDL_WINDOWPOS_UNDEFINED,
+                          SDL_WINDOWPOS_UNDEFINED,
+                          width, height, SDL_WINDOW_OPENGL);
+  gl_handle.reload();
+  gl_handle.redirectDebugOutput();
+  glViewport(0, 0, width, height);
   glEnable(GL_BLEND);
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glDisable(GL_DEPTH_TEST);
+  window.setTitle(_name);
 
-  { // initialize buffer
-    import klaodg.glrender : Renderer_Initialize;
-    Renderer_Initialize();
-  }
-
-
-  { // gui
-    glfwGetWindowSize(window, &window_width, &window_height);
-
-    On_Window_Resize(window, window_width, window_height);
-    glfwSetWindowSizeCallback(window, &On_Window_Resize);
-
-    gui = new GUI(0);
-  }
-
-  Initialize();
-  GLBuffer gl_buffer = new GLBuffer(width, height);
-  float last_time, framerate;
-
-  while ( !glfwWindowShouldClose(window) ) {
-    last_time = glfwGetTime();
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    Input_Update(window);
-    gui.Start_Update(framerate);
-    Update(gl_buffer, glfwGetTime());
-    gl_buffer.Render();
-    gui.End_Update();
-    glfwSwapBuffers(window);
-    glfwPollEvents();
-
-    framerate = glfwGetTime()-last_time;
-  }
-
-  imguiDestroy();
+  //----
 }
 
-extern(C) void On_Window_Resize(GLFWwindow* w, int width, int height) nothrow {
-  glViewport(0, 0, width, height);
+private bool is_rendering = false;
+bool Render_State ( ) { return is_rendering; }
+void Start_Frame_Render ( ) {
+  sdl2.processEvents();
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  is_rendering = true;
+}
+void End_Frame_Render ( ) {
+  window.swapBuffers();
+  is_rendering = false;
+}
 
-  window_width  = width;
-  window_height = height;
+
+void Clean ( ) {
+  console.destroy;
+  sdl2.destroy;
+  sdl2image.destroy;
+  window.destroy;
+  gl_handle.destroy;
 }

@@ -1,25 +1,16 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"cairod": "0.0.1-alpha.3+1.10.2",
-		"color": "0.0.6",
-		"dcv": "0.2.3",
-		"derelict-ft": "1.0.2",
+		"colorize": "1.0.5",
+		"derelict-assimp3": "2.0.0-beta.1",
+		"derelict-fi": "3.0.0-beta.1",
 		"derelict-gl3": "2.0.0-beta.5",
-		"derelict-glfw3": "4.0.0-beta.1",
+		"derelict-imgui": "0.10.0",
+		"derelict-sdl2": "3.1.0-alpha.3",
 		"derelict-util": "3.0.0-beta.2",
-		"dstats": "1.0.5",
-		"dunit": "1.0.14",
-		"ffmpeg-d": "3.1.1",
 		"gfm": "7.0.0",
-		"ggplotd": "1.1.4",
-		"gtk-d": "3.3.1",
 		"imageformats": "6.1.2",
-		"mir-algorithm": "0.6.21",
-		"painlesstraits": "0.2.0",
 		"serial-port": "1.2.0",
-		"tharsis-dimgui": "0.1.10",
-		"windows-headers": "1.0.1",
-		"x11": "1.0.19"
+		"tharsis-dimgui": "0.1.10"
 	}
 }
