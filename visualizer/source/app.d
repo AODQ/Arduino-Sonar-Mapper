@@ -15,8 +15,10 @@ SonarMap sonar_map;
 
 
 void main ( ) {
+  import arduino : Initialize_Serial_Port;
   import gfm.sdl2;
   Initialize_Klaodg(dim.x, dim.y, 16, "thingie");
+  Initialize_Serial_Port();
   sonar_map = new SonarMap();
 
   SDL_Event sdl_event;

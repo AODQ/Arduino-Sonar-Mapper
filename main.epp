@@ -42,10 +42,10 @@ struct Rotatal {
 
 template <int Sonar_amt, int Sonar_dist, int Servo_x, int Iters>
 struct Camera {
-  static_assert(Sonar_amt%2 == 0, "Must have even number of sensors");
+  // static_assert(Sonar_amt%2 == 0, "Must have even number of sensors");
   using SonarPool = ParallelSonar<Sonar_amt, Sonar_dist>;
   Rotatal<Servo_x>  left;
-  Rotatal<Servo_x+2>right;
+  // Rotatal<Servo_x+2>right;
   SonarPool* sonar_pool;
   int y_iter = 70;
   bool finished = false;
@@ -53,39 +53,37 @@ struct Camera {
   void Init ( ) {
     Serial.begin(9600);
     left.Init();
-    right.Init();
+    // right.Init();
     sonar_pool = new SonarPool();
     Clean_Reset();
   }
 
 
   void Clean_Reset ( ) {
-    left .Set(1.0f, y_iter/180.0f);
-    right.Set(0.0f, y_iter/180.0f);
+    left .Set(0.2f, y_iter/180.0f);
+    delay(1500);
+    // right.Set(0.8f, y_iter/180.0f);
   }
 
   void Sweep () {
-    if ( finished _ return;
+    if ( finished ) return;
     const float it_fl = static_cast<float>(Iters);
     float d = 0.0f;
     delay(100);
     for ( int i = 0; i != Iters; ++ i ) {
       // 0.2f .. 0.4f
-      right.Set(1.0f-Mix(0.2f, 0.4f, i/it_fl), (y_iter+20.0f)/180.0f);
-      left.Set(Mix(0.2f, 0.4f, i/it_fl), y_iter/180.0f);
+      // right.Set(1.0f-Mix(0.2f, 0.45f, i/it_fl), (y_iter+20.0f)/180.0f);
+      left.Set(Mix(0.2, 0.8, i/it_fl), y_iter/180.0f);
       delay(50); // delay to avoid screwing up parallel sonar pin readings
       unsigned long data[Sonar_amt];
-      unsigned long rdata[Sonar_amt];
-      for ( int avg = 0; avg != 20; ++ avg ) {
+      unsigned long rdata = 0;
+      for ( int avg = 0; avg != 10; ++ avg ) {
         sonar_pool->Ping(data);
-        for ( int it = 0; it != Sonar_amt; ++ it )
-          rdata[it] += data[it];
-        delay(10);
+        rdata += data[0];
+        delay(30);
       }
-      for ( auto& rd : rdata )
-        rd /= 20;
-      for ( auto&& d : rdata )
-        write(d, " ");
+      rdata /= 10;
+      write(rdata, " E");
     }
     y_iter += 2;
     if ( y_iter >= 110 ) {
@@ -97,7 +95,7 @@ struct Camera {
 };
 
 // template <int Sonar_amt, int Sonar_dist, int Servo_x, int Iters>
-Camera<2, 100, 9, 40> camera;
+Camera<1, 100, 9, 40> camera;
 
 void setup(){
   camera.Init();

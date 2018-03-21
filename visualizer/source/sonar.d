@@ -3,7 +3,7 @@ static import gfx;
 import klaodg;
 import gfm.opengl;
 import derelict.opengl;
-import svo : Octree;
+import svo;
 import std.stdio;
 
 struct VoxelVertex {
@@ -29,7 +29,7 @@ class SonarMap {
       void main ( ) {
         gl_Position = map_matrix * vec4(origin+offset.xyz, 1.0f);
         frag_col = vec3(exp(-distance(offset.xyz, camera_origin)*0.15f));
-        frag_col += vec3(0.2f, 0.1f, 0.0f);
+        frag_col += vec3(0.2f, 0.6f, 0.4f);
       }
     #endif
     #if FRAGMENT_SHADER
@@ -64,45 +64,49 @@ class SonarMap {
   void Build_Geometry ( float3 origin ) {
     if ( ++ voxel_count >= 5012 ) return; // hit limit
     float4 T = float4(origin, 1.0f);
-    writeln(voxel_origin_vbo);
+    writeln("VOXEL ORIGIN: ", origin);
     glBindVertexArray(voxel_vertex_vao);
     glBindBuffer(GL_ARRAY_BUFFER, voxel_origin_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 5012*4*float.sizeof, null, GL_STREAM_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, voxel_count*4*float.sizeof, 4*float.sizeof,
                     T.ptr);
   }
 
-  float3 ROrigin ( float3 O, float dist, int y_iter, int x_iter ) {
-    float theta = Mix(0.2f, 0.45f, x_iter/40.0f);
+  float3 RNor ( float3 O, float dist, int y_iter, int x_iter, bool left ) {
+    float theta = Mix(0.2, 0.8, x_iter/40.0f);
+    theta *= PI;
     y_iter -= 90;
-    float3 N = Normalize(float3(cos(theta), y_iter/180.0f, sin(theta)));
-    N.y.writeln;
-    return O+dist*N;
+    float3 N = Normalize(float3(cos(theta), -PI*(y_iter/180.0f), sin(theta)));
+    return N;
   }
 
   bool finished = false;
   void Update() {
     import arduino;
-    auto tbl = RDistances(x_iter, y_iter);
-    if ( tbl.length == 0 ) return;
     Render();
+    auto tbl = RDistances();
+    if ( tbl.length == 0 ) return;
     if ( finished ) return;
-    float left_dist  = cast(float)tbl[0],
-          right_dist = cast(float)tbl[1];
-    float3 left_origin = float3(0.0f,  1.0f, -15.24f/2.0f),
-           right_origin = float3(0.0f, 1.0f,  15.24f/2.0f);
+    writeln("DISTANCES: ", tbl);
+    float left_dist  = cast(float)tbl[0];
+          // right_dist = cast(float)tbl[1];
+    float3 left_origin = float3(0.0f,  1.0f, -15.24f/2.0f);
+           // right_origin = float3(0.0f, 1.0f,  15.24f/2.0f);
     // polar coordinates => cartesian coordinates
-    if ( left_dist > 1.0f )
-      Build_Geometry(ROrigin(left_origin, left_dist, y_iter, x_iter));
-    if ( right_dist > 1.0f )
-      Build_Geometry(ROrigin(right_origin, right_dist, y_iter, 40-x_iter));
+    if ( left_dist > 1.0f && left_dist < 100.0f ) {
+      float3 N = RNor(left_origin, left_dist, y_iter, x_iter, true);
+      float3 O = left_origin + left_dist*N;
+      otree.Insert(O, new VoxelData(left_origin, N, left_dist));
+      Build_Geometry(O);
+    }
+    // if ( right_dist > 1.0f && right_dist < 100.0f )
+    //   Build_Geometry(ROrigin(right_origin, right_dist, y_iter, x_iter, false));
     // otree.Insert(left_origin+left_nor*left_dist,
     //              new VoxelData(left_origin, left_nor, left_dist));
     // otree.Insert(right_origin+right_nor*right_dist,
     //              new VoxelData(right_origin, right_nor, right_dist));
     if ( ++ x_iter == 40 ) {
       x_iter = 0;
-      y_iter += 10;
+      y_iter += 2;
       if ( y_iter >= 110 ) {
         y_iter = 70;
         finished = true;
