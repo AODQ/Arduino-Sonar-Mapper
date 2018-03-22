@@ -5,30 +5,29 @@ import gfm.opengl;
 import derelict.opengl;
 import svo;
 import std.stdio;
-
-struct VoxelVertex {
-  float3 origin;
-  float3 col;
-}
-alias VoxelSpecification = gfx.VertexSpecification!VoxelVertex;
-
+static import svorender;
+static import botrender;
 
 class SonarMap {
   Octree otree;
   int y_iter = 70, x_iter = 0;
   this ( ) {
-    otree = new Octree(float3(0.0f), 100.0f, 64);
+    otree = new Octree(float3(0.0f), 100.0f, 7);//SCALE
     string source =
     q{#version 330 core
     #if VERTEX_SHADER
       layout(location = 0) in vec3 origin;
-      layout(location = 1) in vec4 offset;
       out vec3 frag_col;
-      uniform mat4 map_matrix;
-      uniform vec3 camera_origin;
+      uniform mat4 projection;
+      uniform mat4 view;
+      uniform vec3 camera_origin; // light source
+      uniform vec3 model_offset;
+      uniform float model_size;
+
       void main ( ) {
-        gl_Position = map_matrix * vec4(origin+offset.xyz, 1.0f);
-        frag_col = vec3(exp(-distance(offset.xyz, camera_origin)*0.15f));
+        vec4 O = vec4(model_offset+origin*model_size, 1.0f);
+        gl_Position = (projection*view) * O;
+        frag_col = vec3(exp(-distance(model_offset.xyz, camera_origin)*0.15f));
         frag_col += vec3(0.2f, 0.6f, 0.4f);
       }
     #endif
@@ -44,7 +43,6 @@ class SonarMap {
     #endif
     };
     program = new gfx.GLProgram(gl_handle, source);
-    voxel_specification = new VoxelSpecification(program);
 
     glGenVertexArrays(1, &voxel_vertex_vao);
     glBindVertexArray(voxel_vertex_vao);
@@ -53,57 +51,48 @@ class SonarMap {
     glBindBuffer(GL_ARRAY_BUFFER, voxel_vertex_vbo);
     glBufferData(GL_ARRAY_BUFFER, temp_vertices.length*float.sizeof,
                  temp_vertices.ptr, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &voxel_origin_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, voxel_origin_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 5012*4*float.sizeof, null, GL_STREAM_DRAW);
-    Build_Geometry(float3(0.0f, 1.0f, -15.24f/2.0f));
-    Build_Geometry(float3(0.0f, 1.0f,  15.24f/2.0f));
+    svorender.Initialize();
+    botrender.Initialize();
+    botrender.Set_Origin(float3(0.0f));
   }
 
   void Build_Geometry ( float3 origin ) {
     if ( ++ voxel_count >= 5012 ) return; // hit limit
-    float4 T = float4(origin, 1.0f);
-    writeln("VOXEL ORIGIN: ", origin);
-    glBindVertexArray(voxel_vertex_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, voxel_origin_vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, voxel_count*4*float.sizeof, 4*float.sizeof,
-                    T.ptr);
+    // insert node into tree
+    otree.Insert(origin, new VoxelData(origin));
+    svorender.Update_Lines(otree);
   }
 
-  float3 RNor ( float3 O, float dist, int y_iter, int x_iter, bool left ) {
-    float theta = Mix(0.2, 0.8, x_iter/40.0f);
+  float2 RPolar ( int y_iter, int x_iter ) {
+    float theta = Mix(0.2f, 0.8f, x_iter/40.0f);
     theta *= PI;
-    y_iter -= 90;
-    float3 N = Normalize(float3(cos(theta), -PI*(y_iter/180.0f), sin(theta)));
-    return N;
+    float phi = -PI*((y_iter-90.0f)/180.0f);
+    return float2(theta, phi);
+  }
+
+  float3 RNor ( int y_iter, int x_iter, bool left ) {
+    float2 P = RPolar(y_iter, x_iter);
+    return Normalize(float3(cos(P.x), P.y, sin(P.x)));
   }
 
   bool finished = false;
   void Update() {
     import arduino;
-    Render();
+    Render(otree.voxel_render_list);
+    svorender.Render(otree);
+    botrender.Render(RPolar(y_iter, x_iter));
     auto tbl = RDistances();
     if ( tbl.length == 0 ) return;
     if ( finished ) return;
-    writeln("DISTANCES: ", tbl);
     float left_dist  = cast(float)tbl[0];
           // right_dist = cast(float)tbl[1];
     float3 left_origin = float3(0.0f,  1.0f, -15.24f/2.0f);
-           // right_origin = float3(0.0f, 1.0f,  15.24f/2.0f);
     // polar coordinates => cartesian coordinates
     if ( left_dist > 1.0f && left_dist < 100.0f ) {
-      float3 N = RNor(left_origin, left_dist, y_iter, x_iter, true);
+      float3 N = RNor(y_iter, x_iter, true);
       float3 O = left_origin + left_dist*N;
-      otree.Insert(O, new VoxelData(left_origin, N, left_dist));
       Build_Geometry(O);
     }
-    // if ( right_dist > 1.0f && right_dist < 100.0f )
-    //   Build_Geometry(ROrigin(right_origin, right_dist, y_iter, x_iter, false));
-    // otree.Insert(left_origin+left_nor*left_dist,
-    //              new VoxelData(left_origin, left_nor, left_dist));
-    // otree.Insert(right_origin+right_nor*right_dist,
-    //              new VoxelData(right_origin, right_nor, right_dist));
     if ( ++ x_iter == 40 ) {
       x_iter = 0;
       y_iter += 2;
@@ -116,13 +105,12 @@ class SonarMap {
 }
 
 // TODO : instancing implementation with size
-GLuint voxel_vertex_vbo, voxel_origin_vbo;
+GLuint voxel_vertex_vbo;
 GLuint voxel_vertex_vao;
-VoxelSpecification voxel_specification;
 int voxel_count;
 gfx.GLProgram program;
 
-void Render ( ) {
+void Render(Range)( Range render_list ) {
   import gfm.sdl2;
   import camera;
   Update_Camera();
@@ -130,10 +118,9 @@ void Render ( ) {
   float4x4 projection = gfx.RModel_View,
            view       = float4x4.lookAt(eye, target,
                                    float3(0.0f, -1.0f, 0.0f));
-  view.translate(float3(0.0f));
-  float4x4 model = float4x4.identity;
-  model.translate(float3(2.0f));
-  program.uniform("map_matrix").set(projection*view*model);
+  // model.translate(float3(2.0f));
+  program.uniform("projection").set(projection);
+  program.uniform("view").set(view);
   program.uniform("camera_origin").set(camera_origin);
   program.use();
 
@@ -142,13 +129,10 @@ void Render ( ) {
   glBindBuffer(GL_ARRAY_BUFFER, voxel_vertex_vbo);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
 
-  glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, voxel_origin_vbo);
-  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, null);
-
-  glVertexAttribDivisor(0, 0);
-  glVertexAttribDivisor(1, 1);
-
-  glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 36, voxel_count);
+  foreach ( r; render_list ) {
+    program.uniform("model_offset").set(r.origin);
+    program.uniform("model_size").set(r.size);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 36);
+  }
   program.unuse;
 }

@@ -1,6 +1,7 @@
 module klaodg;
 
 public import klaodg.vector;
+public import std.stdio;
 import derelict.util.loader;
 import gfm.logger, gfm.sdl2, gfm.opengl, gfm.math;
 
