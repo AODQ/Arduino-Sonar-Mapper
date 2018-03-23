@@ -78,15 +78,16 @@ class SonarMap {
   bool finished = false;
   void Update() {
     import arduino;
-    Render(otree.voxel_render_list);
-    svorender.Render(otree);
-    botrender.Render(RPolar(y_iter, x_iter));
     auto tbl = RDistances();
+    Render(otree.voxel_render_list);
+    bool change = tbl.length != 0;
+    svorender.Render(otree);
+    botrender.Render(RPolar(y_iter, x_iter), change);
     if ( tbl.length == 0 ) return;
     if ( finished ) return;
     float left_dist  = cast(float)tbl[0];
           // right_dist = cast(float)tbl[1];
-    float3 left_origin = float3(0.0f,  1.0f, -15.24f/2.0f);
+    float3 left_origin = float3(0.0f,  1.0f, 0.0f);
     // polar coordinates => cartesian coordinates
     if ( left_dist > 1.0f && left_dist < 100.0f ) {
       float3 N = RNor(y_iter, x_iter, true);

@@ -27,7 +27,7 @@ private void Initialize_Bot ( ) {
 
     void main ( ) {
       color.xyz = mix(vec3(0.8f, 0.2f, 0.2f),
-                      vec3(0.4f, 0.4f, 0.4f), mod(time, 0.5f)/0.5f);
+                      vec3(0.4f, 0.4f, 0.4f), time);
       color.w = 1.0f;
     }
   #endif
@@ -102,15 +102,16 @@ immutable private float[] Frustrum_colours = [
   0.6f, 0.6f, 0.7f, 0.6f, 0.6f, 0.7f,
 ];
 
-void Render ( float2 polar ) {
+void Render ( float2 polar, bool change ) {
   import camera, derelict.sdl2.sdl;
-  float time = SDL_GetTicks()*0.001f;
+  static float time = 0.0f;
+  if ( change ) time = 0.0f;
+  time += 0.0166f;
   float3 eye = camera_origin, target = eye+camera_target;
   float4x4 projection = gfx.RModel_View,
            view       = float4x4.lookAt(eye, target,
                                    float3(0.0f, -1.0f, 0.0f)),
            model      = float4x4.identity();
-  model.translate(bot_origin);
   float gamma = -polar.y, beta = PI/2.0f - polar.x;
   float4x4 Rx = float4x4(
     1.0f, 0.0f, 0.0f, 1.0f,
@@ -125,6 +126,7 @@ void Render ( float2 polar ) {
     0.0f, 0.0f, 0.0f, 1.0f,
   );
   model = (Ry*Rx)*model;
+  model.translate(bot_origin);
   // -- draw base --
   bot_program.uniform("projection").set(projection);
   bot_program.uniform("view").set(view);

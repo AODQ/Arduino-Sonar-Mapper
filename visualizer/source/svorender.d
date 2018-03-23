@@ -98,7 +98,12 @@ void Update_Lines ( ref Octree octree ) {
 }
 
 void Render ( ref Octree octree ) {
-  import camera;
+  import camera, derelict.sdl2.sdl;
+  static bool render = true;
+  if ( sdl2.keyboard.testAndRelease(SDLK_1) ) {
+    render ^= 1;
+  }
+  if ( !render ) return;
   float3 eye = camera_origin, target = eye+camera_target;
   float4x4 projection = gfx.RModel_View,
            view       = float4x4.lookAt(eye, target,
@@ -109,13 +114,14 @@ void Render ( ref Octree octree ) {
   program.use();
   glBindVertexArray(otree_vtx_vao);
 
+
   glEnableVertexAttribArray(0);
   glBindBuffer(GL_ARRAY_BUFFER, otree_vtx_vbo);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
 
   glEnable(GL_LINE_SMOOTH);
-  // glDrawArrays(GL_LINES, 0, cast(uint)(otree_lines.length/3));
-  // glDisable(GL_LINE_SMOOTH);
+  glDrawArrays(GL_LINES, 0, cast(uint)(otree_lines.length/3));
+  glDisable(GL_LINE_SMOOTH);
   // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, otree_vtx_ebo);
 
   // glDrawElements(GL_LINES, cast(uint)(otree_indices.length), GL_UNSIGNED_INT,
