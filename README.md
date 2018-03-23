@@ -6,6 +6,7 @@ The geometry-mapping component uses DLang, communicating to the arduino over ser
 Video of it in action: https://www.youtube.com/watch?v=4PG0_yIogY4
 
 ![](https://github.com/AODQ/Arduino-Sonar-Mapper/blob/master/screenshots/Scene0-Rendering.png?raw=true)
+
 Rendered from this scene (sonars generally can't detect surfaces such as sponges):
 ![](https://github.com/AODQ/Arduino-Sonar-Mapper/blob/master/screenshots/Scene0.jpg?raw=true)
 
