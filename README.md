@@ -28,11 +28,13 @@ hardware (a mobile sonar whose rotational origin is at its center):
     which you are located in. A prototype of such a function is already
     included in the source code for the SVO. This would, over time, give better
     results as erroneous voxels are removed, however the reverse is also true.
+    
 ] If an octree node contains >N children, construct a node for that parent, in
     a recursive manner. The locations of the children could also modify the
       model/angle of which the voxel should be. Of course the accuracy of such
       thing is suspicious at best, so the results of such an implementation would
       be interesting.
+
 ] Isosurface reconstruction is an interesting idea, however this requires a very
     large number of sampling from the sonar; knowing the point at which an
     isosurface can be reconstructed in a specific region is interesting.
