@@ -16,7 +16,7 @@ string Serial_Read ( ) {
 }
 
 void Initialize_Serial_Port ( ) {
-  port_com = new SerialPort("/dev/ttyUSB0");
+  // port_com = new SerialPort("/dev/ttyUSB0");
 }
 
 // int[] RDistances ( ) {
@@ -25,17 +25,19 @@ void Initialize_Serial_Port ( ) {
 // }
 
 int[] RDistances ( ) {
-  import std.string, std.algorithm, std.conv, std.array;
-  string data = Serial_Read();
-  if ( data == "" ) return [];
-  string[] d = data.split(" ");
-  writeln(d);
-  try {
-    if ( d.length >= 1 )
-      return [ d[0].to!int ];
-  } catch ( Exception e ) {
-    writeln("exception getting distance: ", e);
-    return [];
-  }
-  return [];
+  import std.random;
+  return [ uniform(95, 100) ];
+  // import std.string, std.algorithm, std.conv, std.array;
+  // string data = Serial_Read();
+  // if ( data == "" ) return [];
+  // string[] d = data.split(" ");
+  // writeln(d);
+  // try {
+  //   if ( d.length >= 1 )
+  //     return [ d[0].to!int ];
+  // } catch ( Exception e ) {
+  //   writeln("exception getting distance: ", e);
+  //   return [];
+  // }
+  // return [];
 }

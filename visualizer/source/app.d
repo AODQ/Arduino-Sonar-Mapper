@@ -37,6 +37,16 @@ void main ( ) {
     SDL_PumpEvents();
     SDL_Delay(1);
 
+    static bool lock = false, pressed = false;
+    if ( sdl2.mouse.isButtonPressed(SDL_BUTTON_LMASK) ) {
+      if ( pressed ) continue;
+      pressed = true;
+      lock ^= 1;
+      writeln(lock);
+      if ( lock ) sdl2.mouse.startCapture;
+      else        sdl2.mouse.stopCapture;
+    } else pressed = false;
+
     framerate = SDL_GetTicks()-last_time;
     if ( framerate < 15.0f )
       writeln(framerate, " ms");

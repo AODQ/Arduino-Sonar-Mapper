@@ -12,31 +12,41 @@ class SonarMap {
   Octree otree;
   int y_iter = 70, x_iter = 0;
   this ( ) {
-    otree = new Octree(float3(0.0f), 100.0f, 7);//SCALE
+    otree = new Octree(float3(0.0f), 100.0f, 6);//SCALE
     string source =
     q{#version 330 core
     #if VERTEX_SHADER
       layout(location = 0) in vec3 origin;
-      out vec3 frag_col;
+      layout(location = 1) in vec3 normal;
       uniform mat4 projection;
       uniform mat4 view;
       uniform vec3 camera_origin; // light source
       uniform vec3 model_offset;
       uniform float model_size;
+    out vec3 frag_wi, frag_Lo, frag_ori, frag_nor, frag_col;
 
       void main ( ) {
         vec4 O = vec4(model_offset+origin*model_size, 1.0f);
         gl_Position = (projection*view) * O;
         frag_col = vec3(exp(-distance(model_offset.xyz, camera_origin)*0.15f));
         frag_col += vec3(0.2f, 0.6f, 0.4f);
+        frag_ori = gl_Position.xyz;
+        frag_Lo = vec3(0.0f, 10.0f, 5.0f);
+        frag_wi = -normalize(frag_ori);
+        frag_nor = normal;
       }
     #endif
     #if FRAGMENT_SHADER
-      in vec3 frag_col;
       out vec4 color;
+      in vec3 frag_wi, frag_Lo, frag_ori, frag_nor, frag_col;
 
       void main ( ) {
-        color.xyz = frag_col;
+        // awful "who-cares" shading implementation since there are only
+        // non-interesting primitives present anyways
+        vec3 L = reflect(-frag_wi, frag_nor);
+        color.xyz = vec3(
+          dot(frag_nor, normalize(-frag_Lo)) + 0.5f
+        )*(L+vec3(0.8f));
         // color.xyz = vec3(1.0f);
         color.w = 1.0f;
       }
@@ -51,6 +61,20 @@ class SonarMap {
     glBindBuffer(GL_ARRAY_BUFFER, voxel_vertex_vbo);
     glBufferData(GL_ARRAY_BUFFER, temp_vertices.length*float.sizeof,
                  temp_vertices.ptr, GL_STATIC_DRAW);
+
+    temp_vertices = gfx.Cube_normals.dup;
+    glGenBuffers(1, &normal_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, normal_vbo);
+    glBufferData(GL_ARRAY_BUFFER, temp_vertices.length*float.sizeof,
+                 temp_vertices.ptr, GL_STATIC_DRAW);
+
+    glBindVertexArray(voxel_vertex_vao);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, voxel_vertex_vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, normal_vbo);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 0, null);
     svorender.Initialize();
     botrender.Initialize();
     botrender.Set_Origin(float3(0.0f));
@@ -105,8 +129,7 @@ class SonarMap {
   }
 }
 
-// TODO : instancing implementation with size
-GLuint voxel_vertex_vbo;
+GLuint voxel_vertex_vbo, normal_vbo;
 GLuint voxel_vertex_vao;
 int voxel_count;
 gfx.GLProgram program;
@@ -126,9 +149,6 @@ void Render(Range)( Range render_list ) {
   program.use();
 
   glBindVertexArray(voxel_vertex_vao);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, voxel_vertex_vbo);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
 
   foreach ( r; render_list ) {
     program.uniform("model_offset").set(r.origin);

@@ -76,6 +76,19 @@ private void Initialize_Frustrum ( ) {
   glBindBuffer(GL_ARRAY_BUFFER, frustrum_colour_vbo);
   glBufferData(GL_ARRAY_BUFFER, Frustrum_colours.length*float.sizeof,
                Frustrum_colours.ptr, GL_STATIC_DRAW);
+
+  glBindVertexArray(frustrum_vao);
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, frustrum_vertex_vbo);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
+  glEnableVertexAttribArray(1);
+  glBindBuffer(GL_ARRAY_BUFFER, frustrum_colour_vbo);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, null);
+
+  glBindVertexArray(bot_vao);
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, bot_vbo);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
 }
 void Initialize ( ) {
   Initialize_Bot();
@@ -135,10 +148,6 @@ void Render ( float2 polar, bool change ) {
   bot_program.use();
 
   glBindVertexArray(bot_vao);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, bot_vbo);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
-
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 36);
 
   bot_program.unuse();
@@ -149,13 +158,6 @@ void Render ( float2 polar, bool change ) {
   frustrum_program.use();
 
   glBindVertexArray(frustrum_vao);
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, frustrum_vertex_vbo);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
-
-  glEnableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, frustrum_colour_vbo);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, null);
 
   glEnable(GL_LINE_SMOOTH);
   glDrawArrays(GL_LINES, 0, cast(uint)(Frustrum_verts.length/3));

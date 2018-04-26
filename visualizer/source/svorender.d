@@ -25,20 +25,23 @@ void Initialize ( ) {
     layout(location = 0) in vec3 origin;
     uniform mat4 projection;
     uniform mat4 view;
-    out vec3 frag_col;
+    out vec3 frag_wi, frag_Lo, frag_ori, frag_nor;
 
     void main ( ) {
       vec4 O = vec4(origin, 1.0f);
       gl_Position = (projection*view)*O;
-      frag_col = vec3(1.0f);
+      frag_ori = gl_Position.xyz;
+      frag_Lo = vec3(0.0f, 10.0f, 5.0f);
+      frag_wi = -normalize(frag_ori);
+      frag_nor = vec3(0.0f, 1.0f, 0.0f);
     }
   #endif
   #if FRAGMENT_SHADER
-    in vec3 frag_col;
+    in vec3 frag_wi, frag_Lo, frag_ori, frag_nor;
     out vec4 color;
 
     void main ( ) {
-      color = vec4(frag_col, 1.0f);
+      color = vec4((0.8f+clamp(frag_wi, 0.0f, 0.2f)), 1.0f);
     }
   #endif
   };
@@ -49,6 +52,10 @@ void Initialize ( ) {
   glGenBuffers(1, &otree_vtx_vbo);
   // glGenBuffers(1, &otree_vtx_ebo);
   Update_Buffers();
+
+  glEnableVertexAttribArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, otree_vtx_vbo);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
 }
 
 private void Update_Buffers ( ) {
@@ -113,11 +120,6 @@ void Render ( ref Octree octree ) {
   program.uniform("view").set(view);
   program.use();
   glBindVertexArray(otree_vtx_vao);
-
-
-  glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, otree_vtx_vbo);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null);
 
   glEnable(GL_LINE_SMOOTH);
   glDrawArrays(GL_LINES, 0, cast(uint)(otree_lines.length/3));

@@ -39,3 +39,26 @@ immutable float[] Cube_vertices = [
   -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  1.0f,
   -1.0f, 1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,
 ];
+
+
+immutable static float e = 0.57735f;
+immutable float[] Cube_normals = [
+  -e, -e, -e, -e, -e, e,
+  -e, e,  e,  e,  e,  -e,
+  -e, -e, -e, -e, e,  -e,
+  e,  -e, e,  -e, -e, -e,
+  e,  -e, -e, e,  e,  -e,
+  e,  -e, -e, -e, -e, -e,
+  -e, -e, -e, -e, e,  e,
+  -e, e,  -e, e,  -e, e,
+  -e, -e, e,  -e, -e, -e,
+  -e, e,  e,  -e, -e, e,
+  e,  -e, e,  e,  e,  e,
+  e,  -e, -e, e,  e,  -e,
+  e,  -e, -e, e,  e,  e,
+  e,  -e, e,  e,  e,  e,
+  e,  e,  -e, -e, e,  -e,
+  e,  e,  e,  -e, e,  -e,
+  -e, e,  e,  e,  e,  e,
+  -e, e,  e,  e,  -e, e,
+];
