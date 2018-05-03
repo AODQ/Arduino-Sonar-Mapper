@@ -8,6 +8,9 @@ DLang, by receiving the distance results and construct a sparse voxel octree of
 the results. From this the results are all rendered using OpenGL by instanced
 voxels that fill the octree.
 
+Video of it in action [here](https://www.youtube.com/watch?v=6Xcm2GSGwrw)
+![](https://github.com/AODQ/Arduino-Sonar-Mapper/blob/master/screenshots/updated-shader.png?raw=true)
+
 It uses my Arduino Utility library along with my Parallel Sonar library, which
 allows sonars to send and receive sound waves in parallel. However of course,
 the latter isn't fully utilized in this project.
