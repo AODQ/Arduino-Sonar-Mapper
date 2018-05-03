@@ -12,7 +12,7 @@ class SonarMap {
   Octree otree;
   int y_iter = 70, x_iter = 0;
   this ( ) {
-    otree = new Octree(float3(0.0f), 100.0f, 6);//SCALE
+    otree = new Octree(float3(0.0f), 100.0f, 7);//SCALE
     string source =
     q{#version 330 core
     #if VERTEX_SHADER
@@ -46,7 +46,7 @@ class SonarMap {
         vec3 L = reflect(-frag_wi, frag_nor);
         color.xyz = vec3(
           dot(frag_nor, normalize(-frag_Lo)) + 0.5f
-        )*(L+vec3(0.8f));
+        );
         // color.xyz = vec3(1.0f);
         color.w = 1.0f;
       }

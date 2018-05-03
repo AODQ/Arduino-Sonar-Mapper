@@ -2,7 +2,7 @@ import klaodg;
 import sonar;
 import std.stdio;
 
-immutable int2 dim      = int2(640, 480);
+immutable int2 dim      = int2(1280, 720);
 Ray Look_At ( float2 uv, float3 eye, float3 center,
               float3 up = float3(0.0f, 1.0f, 0.0f)) {
   float3 ww = Normalize(center - eye),
